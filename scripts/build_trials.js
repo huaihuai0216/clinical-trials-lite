@@ -229,7 +229,27 @@ async function main() {
   }
 
   const index = [];
-  const pushIndex = (entry) => index.push(entry);
+  const ingredientMap = new Map();
+  // 小工具：正規化名稱（全小寫、去掉非英數）
+  function normName(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  // ✅ 新增：把一筆 index entry 的 interventions 加進倒排表
+  function addIngredients(entry) {
+    if (!entry || !entry.id) return;
+    for (const raw of (entry.interventions || [])) {
+      const key = normName(raw);
+      if (!key) continue;
+      if (!ingredientMap.has(key)) ingredientMap.set(key, new Set());
+      ingredientMap.get(key).add(entry.id);
+    }
+  }
+  const pushIndex = (entry) => {
+    index.push(entry);
+    addIngredients(entry); // ✅ 新增：同步更新成分倒排表
+  };
+  
 
   console.log(`📦 準備處理 ${files.length} 個檔案…`);
 
@@ -263,6 +283,17 @@ async function main() {
   // 排序並寫索引
   index.sort((a,b) => String(b.completion||'').localeCompare(String(a.completion||'')));
   await fsp.writeFile(path.join(OUTPUT_DIR, 'trials.index.json'), JSON.stringify(index));
+  // ✅ 新增：輸出成分倒排表 facets/ingredients.json
+  const facetsDir = path.join(OUTPUT_DIR, 'facets');
+  ensureDir(facetsDir);
+  const ingredientsObj = {};
+  for (const [k, set] of ingredientMap.entries()) {
+    ingredientsObj[k] = Array.from(set); // Set -> Array
+  }
+  await fsp.writeFile(
+    path.join(facetsDir, 'ingredients.json'),
+    JSON.stringify(ingredientsObj)
+  );
 
   console.log(`✅ 完成！索引筆數：${index.length}`);
   console.log(`📁 輸出：${OUTPUT_DIR}/trials.index.json 與 ${OUTPUT_DIR}/trials/<bucket>/<NCTID>.json`);
