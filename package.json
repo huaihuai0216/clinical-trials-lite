@@ -1,0 +1,16 @@
+{
+  "name": "clinical-trials-lite",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node scripts/build_trials.js input dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "stream-json": "^1.9.1"
+  }
+}
